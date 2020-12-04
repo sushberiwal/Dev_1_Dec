@@ -1,5 +1,7 @@
 let request = require("request");
 let cheerio = require("cheerio");
+let fs = require("fs");
+
 
 function getMatch(link){
     request(link , cb);
@@ -33,7 +35,8 @@ function myFun(html){
                 let sixes = ch(allTds[6]).text().trim();
                 let strikeRate = ch(allTds[7]).text().trim();
                 // string interpolation
-                console.log(`Batsman = ${batsmanName} Runs = ${runs} Balls = ${balls} Fours = ${fours} Sixes = ${sixes} SR = ${strikeRate}`)
+                // console.log(`Batsman = ${batsmanName} Runs = ${runs} Balls = ${balls} Fours = ${fours} Sixes = ${sixes} SR = ${strikeRate}`)
+                processData(teamName , batsmanName , runs , balls , fours , sixes , strikeRate);
             }
         }
 
@@ -41,6 +44,68 @@ function myFun(html){
 
     }
 
+}
+
+
+function checkTeamFolder(teamName){
+    //"/IPL/Mumbai Indians"
+    let teamPath = `IPL/${teamName}`;
+    return fs.existsSync(teamPath);
+}
+function checkBatsmanFile(teamName , batsmanName){
+    // " /IPL/Mumbai Indians/Hardik Pandya.json" => javascript object notation
+    let batsmanPath = `IPL/${teamName}/${batsmanName}.json`;
+    return fs.existsSync(batsmanPath);
+}
+function updateBatsmanFile(teamName , batsmanName, runs , balls , fours , sixes , strikeRate){
+    let batsmanPath = `IPL/${teamName}/${batsmanName}.json`;
+    let batsmanFile = fs.readFileSync(batsmanPath);
+    batsmanFile = JSON.parse(batsmanFile);
+    let inning = {
+        Runs : runs ,
+        Balls : balls , 
+        Fours : fours , 
+        Sixes : sixes ,
+        SR :strikeRate 
+    }
+    batsmanFile.push(inning);
+    fs.writeFileSync(batsmanPath , JSON.stringify(batsmanFile));
+}
+function createBatsmanFile(teamName , batsmanName, runs , balls , fours , sixes , strikeRate){
+    let batsmanPath = `IPL/${teamName}/${batsmanName}.json`;
+    let batsmanFile = [];
+    let inning = {
+        Runs : runs ,
+        Balls : balls , 
+        Fours : fours , 
+        Sixes : sixes ,
+        SR :strikeRate 
+    }
+    batsmanFile.push(inning);
+    fs.writeFileSync(batsmanPath , JSON.stringify(batsmanFile));
+}
+function createTeamFolder(teamName){
+    let teamPath = `IPL/${teamName}`;
+    fs.mkdirSync(teamPath);
+}
+
+
+function processData(teamName , batsmanName, runs , balls , fours , sixes , strikeRate){
+    let teamFolderExists = checkTeamFolder(teamName);
+    if(teamFolderExists){
+        let batsmanFileExists = checkBatsmanFile(teamName , batsmanName);
+        if(batsmanFileExists){
+            updateBatsmanFile(teamName , batsmanName, runs , balls , fours , sixes , strikeRate);
+        }
+        else{
+            createBatsmanFile(teamName , batsmanName, runs , balls , fours , sixes , strikeRate);
+        }
+    }
+    else{
+        // team ka folder nahi tha
+        createTeamFolder(teamName);
+        createBatsmanFile(teamName , batsmanName, runs , balls , fours , sixes , strikeRate);
+    }
 }
 
 
